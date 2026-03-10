@@ -158,6 +158,7 @@ service cloud.firestore {
   }
 }
 ```
+  
 
 These rules state that:
 - Users can only read and write to their own user data, keeping usernames private and admin passwords.
