@@ -1,34 +1,47 @@
 import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
-import { db } from "../firebase/config";
-import { onSnapshot, doc, setDoc } from "firebase/firestore";
+import { db, auth } from "../firebase/config"; // 1. IMPORT auth
+import { onSnapshot, doc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth"; // 2. IMPORT onAuthStateChanged
 import { unflattenItems } from "../firebase/utils";
 import { ItemsContext } from "./ItemsContext";
 
 export const ItemsProvider = ({ demo, children }) => {
   const [items, setItems] = useState([]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // 3. Track login state
 
-useEffect(() => {
+  // 4. Watch for Login/Logout changes
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setIsLoggedIn(!!user);
+    });
+    return () => unsubscribeAuth();
+  }, []);
+
+  useEffect(() => {
+    // 5. If not logged in, stop everything and return
+    if (!isLoggedIn) {
+      setItems([]);
+      return;
+    }
+
     const docRef = doc(db, "auction", "items");
-    
-    // We add an error handler to the snapshot so it doesn't crash React if it fails
     const unsubscribe = onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
-        // Populate items state
         console.debug("<ItemsProvider /> read from auction/items");
         setItems(unflattenItems(docSnap, demo));
       } else {
-        // Do NOT try to write to the database here!
-        // Just set the items to an empty array so the page loads cleanly.
-        console.debug("<ItemsProvider /> auction/items is empty. Waiting for Admin to upload items.");
         setItems([]); 
       }
     }, (error) => {
-      console.error("Firebase Listener Error:", error.message);
+      // Ignore permission errors during signout
+      if (error.code !== 'permission-denied') {
+        console.error("Firebase Listener Error:", error.message);
+      }
     });
 
-    return () => unsubscribe(); // Clean up the listener on unmount
-  }, [demo]);
+    return () => unsubscribe(); 
+  }, [demo, isLoggedIn]); // 6. Listen to isLoggedIn
 
   return (
     <ItemsContext.Provider value={{ items }}>{children}</ItemsContext.Provider>
@@ -37,5 +50,5 @@ useEffect(() => {
 
 ItemsProvider.propTypes = {
   demo: PropTypes.bool,
-  children: PropTypes.object
+  children: PropTypes.any // Changed from object to any to avoid warnings
 }
