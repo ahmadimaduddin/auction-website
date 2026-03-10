@@ -83,11 +83,14 @@ export const Item = ({ item, openModal }) => {
         onClick={() => openModal(ModalTypes.ITEM, item)} // <--- Now this uses the passed prop!
         style={{ cursor: "pointer" }}
       >
-        <img
-          src={item.primaryImage.startsWith("http") ? item.primaryImage : import.meta.env.BASE_URL + item.primaryImage}
-          className="card-img-top"
-          alt={item.title}
-        />
+        {/* WRAP THE IMAGE IN A CONTAINER */}
+        <div className="card-img-top-container">
+          <img
+            src={item.primaryImage.startsWith("http") ? item.primaryImage : import.meta.env.BASE_URL + item.primaryImage}
+            className="card-img-top"
+            alt={item.title}
+          />
+        </div>
 
         {/* Show "Ended" if time is up, ELSE show "Preview" if locked */}
         {isEnded ? (

@@ -8,7 +8,8 @@ const Grid = () => {
   const { openModal } = useContext(ModalsContext); // 2. Grab the modal tool
 
   return (
-    <div className="row row-cols-1 row-cols-md-3 g-4">
+
+    <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
       {items.map((item) => {
         // 3. PASS IT TO THE ITEM COMPONENT
         return <Item key={item.id} item={item} openModal={openModal} />;
