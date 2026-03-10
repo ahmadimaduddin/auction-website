@@ -28,14 +28,13 @@ const Navbar = ({ admin }) => {
 
   const handleAdmin = () => {
     if (location.pathname.includes("admin")) {
-      navigate("/"); // Navigate to root
+      navigate("/"); // Just navigate to /
       setAdminButtonText("Admin");
     } else {
-      navigate("/admin"); // Navigate to admin
+      navigate("/admin"); // Just navigate to /admin
       setAdminButtonText("Home");
     }
   };
-
 
   // ... inside your Navbar component ...
 

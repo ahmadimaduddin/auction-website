@@ -10,7 +10,7 @@ import { SignUpModal, RulesModal } from "./components/Modal";
 import HomePage from "./pages/Home";
 import AdminPage from "./pages/Admin";
 import Footer from "./components/Footer";
-import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
 function App() {
   const demo = false;
@@ -45,20 +45,20 @@ function App() {
 
   return (
     <Providers>
-      <Router>
+      {/* 1. Add basename here. It MUST match your Repo Name EXACTLY */}
+      <Router basename="/auction-website">
         <Navbar admin={admin} />
         <SignUpModal />
         <RulesModal />
         <Routes>
-          {/* Use "" as the path for the home route when basename is set in Router */}
-          <Route
-            path="/"
-            element={user ? <HomePage /> : <LoginScreen />}
+          {/* 2. Paths must start with "/" */}
+          <Route 
+            path="/" 
+            element={user ? <HomePage /> : <LoginScreen />} 
           />
-
-          {/* Use "admin" as the path, Router adds the base automatically */}
+          
           <Route
-            path="admin"
+            path="/admin"
             element={
               <ProtectedRoute condition={admin}>
                 <AdminPage />
