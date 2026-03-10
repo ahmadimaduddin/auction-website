@@ -10,7 +10,7 @@ const Navbar = ({ admin }) => {
   const openModal = useContext(ModalsContext).openModal;
   const navigate = useNavigate();
   const [user, setUser] = useState("");
-  const [authButtonText, setAuthButtonText] = useState("Sign up");
+  const [authButtonText, setAuthButtonText] = useState("Login");
   const [adminButtonText, setAdminButtonText] = useState("Admin");
   const location = useLocation();
 
