@@ -7,7 +7,14 @@ const Footer = () => {
   return (
     <footer className="container d-flex flex-wrap justify-content-between align-items-center py-3 my-4 border-top">
       <div className="col-md-4 d-flex align-items-center">
-        <span className="text-muted">© {year} Harry Mellor</span>
+        <span className="text-muted">© {year} Dicoding Auction forked from Harry Mellor Github</span>
+      </div>
+      <br/>
+      <div className="col-md-4 d-flex align-items-center">
+        <span className="text-muted">
+          Assets sold "As-Is". No warranty or tech support provided after purchase.
+          Questions? Contact HRGA.
+        </span>
       </div>
       <ul className="nav col-md-4 justify-content-end list-unstyled d-flex">
         <li className="ms-3">

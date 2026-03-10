@@ -8,18 +8,23 @@ import { ItemsContext } from "./ItemsContext";
 export const ItemsProvider = ({ demo, children }) => {
   const [items, setItems] = useState([]);
 
-  useEffect(() => {
+useEffect(() => {
     const docRef = doc(db, "auction", "items");
-    const unsubscribe = onSnapshot(docRef, (doc) => {
-      if (doc.exists()) {
+    
+    // We add an error handler to the snapshot so it doesn't crash React if it fails
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
         // Populate items state
         console.debug("<ItemsProvider /> read from auction/items");
-        setItems(unflattenItems(doc, demo));
+        setItems(unflattenItems(docSnap, demo));
       } else {
-        // Create empty doc
-        console.debug("<ItemsProvider /> write to auction/items");
-        setDoc(docRef, {});
+        // Do NOT try to write to the database here!
+        // Just set the items to an empty array so the page loads cleanly.
+        console.debug("<ItemsProvider /> auction/items is empty. Waiting for Admin to upload items.");
+        setItems([]); 
       }
+    }, (error) => {
+      console.error("Firebase Listener Error:", error.message);
     });
 
     return () => unsubscribe(); // Clean up the listener on unmount

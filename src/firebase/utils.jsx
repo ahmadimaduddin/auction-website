@@ -2,20 +2,29 @@ import {
   getDoc,
   updateDoc,
   doc,
+  setDoc,
   Timestamp,
   deleteField,
 } from "firebase/firestore";
 import { db } from "./config";
 import yaml from "js-yaml";
+
+// 1. Import it from its original home
 import { formatField } from "../utils/formatString";
 
-const parseField = (key) => {
+// 2. Add 'export' to parseField
+export const parseField = (key) => {
     const match = key.match(/item(\d+)_bid(\d+)/);
     return {
       item: Number(match[1]),
       bid: Number(match[2]),
     };
-  };
+};
+
+// 3. Re-export formatField so your new Admin Page can easily grab it from here!
+export { formatField };
+
+// ... (Keep your editItems function down here!) ...
   
 export const unflattenItems = (doc, demo) => {
   let items = {};
@@ -51,43 +60,54 @@ export const editItems = (id = undefined, updateItems = false, deleteBids = fals
     .then((response) => response.text())
     .then((text) => yaml.load(text))
     .then((items) => {
-      // If ID was provided, place that item in an array by itself
-      if (id !== undefined) items = [items.find((item) => item.id === id)];
+      // FIX 1: Safely match the ID as a string
+      if (id !== undefined) items =[items.find((item) => String(item.id) === String(id))];
 
-      // Make the user confirm they want to edit items
-      let action = updateItems? 'update item data' : (deleteBids ? 'delete all bids' : '');
+      let action = updateItems ? 'update item data' : (deleteBids ? 'delete all bids' : '');
       let item = id === undefined ? 'all items' : `item ${id}`;
       if (confirm(`You are about to ${action} for ${item}, are you sure?`) == false) {
-        return
+        return;
       }
 
       const docRef = doc(db, "auction", "items");
       getDoc(docRef)
-        .then((doc) => {
+        .then((docSnap) => {
           console.debug("editItems() read from auction/items");
-          let fields = Object.keys(doc.data());
+          
+          let data = docSnap.exists() ? docSnap.data() : {};
+          let fields = Object.keys(data);
+          
           if (fields.length === 0)
             fields = items.map((item) => formatField(item.id, 0));
+          
           const updates = {};
           items.forEach((newItem) => {
-            // Convert ISO date into Firestore Timestamp
-            newItem.endTime = Timestamp.fromDate(new Date(newItem.endTime));
-            // Filter fields to the ones for the current newItem
+            const endDate = newItem.endTime ? new Date(newItem.endTime) : new Date("2026-12-31T23:59:59");
+            newItem.endTime = Timestamp.fromDate(endDate);
+            
             fields
-              .filter((field) => parseField(field).item === newItem.id)
+              // FIX 2: Force both sides to be Strings so "1" === "1" matches perfectly!
+              .filter((field) => String(parseField(field).item) === String(newItem.id))
               .forEach((field) => {
                 if (updateItems && parseField(field).bid === 0)
                   updates[field] = newItem;
                 if (deleteBids && parseField(field).bid)
-                  updates[field] = deleteField();
+                  updates[field] = deleteField(); // This deletes the bid!
               });
           });
-          return updates;
+
+          // FIX 3: Stop early if there is actually nothing to delete
+          if (Object.keys(updates).length === 0) {
+             alert("No bids found to delete!");
+             return;
+          }
+
+          // FIX 4: Apply the changes and alert the Admin when done
+          setDoc(docRef, updates, { merge: true }).then(() => {
+             console.debug("editItems() write success!");
+             alert("Success! Action completed.");
+          });
         })
-        .then((updates) => {
-          updateDoc(docRef, updates);
-          console.debug("editItems() write to from auction/items");
-        });
+        .catch((error) => console.error("Error in editItems:", error));
     });
 };
-  

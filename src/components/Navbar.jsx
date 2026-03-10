@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useContext } from "react";
 import PropTypes from "prop-types";
 import { useNavigate, useLocation } from "react-router";
+import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase/config";
-import { onAuthStateChanged } from "firebase/auth";
 import { ModalsContext } from "../contexts/ModalsContext";
 import { ModalTypes } from "../utils/modalTypes";
 
@@ -28,22 +28,74 @@ const Navbar = ({ admin }) => {
 
   const handleAdmin = () => {
     if (location.pathname.includes("admin")) {
-      navigate(import.meta.env.BASE_URL);
+      navigate("/"); // Navigate to root
       setAdminButtonText("Admin");
     } else {
-      navigate(import.meta.env.BASE_URL + "admin");
+      navigate("/admin"); // Navigate to admin
       setAdminButtonText("Home");
     }
   };
 
-  const handleAuth = () => {
+
+  // ... inside your Navbar component ...
+
+  const handleAuth = async () => {
     if (user) {
-      setUser("");
-      setAuthButtonText("Sign up");
+      await signOut(auth);
+      setUser(null);
+      setAuthButtonText("Log In");
     } else {
-      openModal(ModalTypes.SIGN_UP);
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+
+      try {
+        console.log("⏳ Opening Google Popup...");
+        const result = await signInWithPopup(auth, provider);
+        console.log("✅ POPUP SUCCESS! Logged in as:", result.user.email);
+      } catch (error) {
+        console.error("❌ POPUP ERROR:", error.message);
+      }
     }
   };
+
+  /*
+  const handleAuth = async () => {
+      if (user) {
+        // 1. Log the user out of Firebase
+        await signOut(auth);
+        
+        // Update the button text back to login (keeping your original app state)
+        setUser(null);
+        setAuthButtonText("Log In"); 
+        
+      } else {
+        // 2. Launch Google SSO instead of opening the original modal
+        const provider = new GoogleAuthProvider();
+        //provider.setCustomParameters({ prompt: 'select_account' }); // Forces account selection
+        
+        try {
+          const result = await signInWithPopup(auth, provider);
+          const loggedInUser = result.user;
+          
+          // 3. CRITICAL: Verify they are an employee
+          // Replace "@yourcompany.com" with your actual domain
+          if (!loggedInUser.email.endsWith("@dicoding.com")) {
+            await signOut(auth); // Kick them out if personal email
+            alert("Access restricted to company employees only.");
+            return;
+          }
+          
+          // 4. If login is successful, update the UI
+          setUser(loggedInUser);
+          setAuthButtonText("Log Out");
+          
+        } catch (error) {
+          console.error("Login Failed", error);
+        }
+      }
+    };
+  
+    */
 
   return (
     <nav className="navbar navbar-dark bg-primary">
@@ -56,10 +108,10 @@ const Navbar = ({ admin }) => {
             height="24"
             className="d-inline-block align-text-top"
           />
-          The Markatplace
+          Dicoding Auction
         </div>
         <div className="row row-cols-auto">
-          <div className="navbar-brand">{user}</div>
+          <div className="navbar-brand">{user.displayName || user.email}</div>
           {admin && (
             <button onClick={handleAdmin} className="btn btn-secondary me-2">{adminButtonText}</button>
           )}
@@ -69,6 +121,7 @@ const Navbar = ({ admin }) => {
     </nav>
   );
 };
+
 
 Navbar.propTypes = {
   admin: PropTypes.bool

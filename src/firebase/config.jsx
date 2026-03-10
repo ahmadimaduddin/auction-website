@@ -2,20 +2,19 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-// Web app's Firebase configuration
+// 1. Your Firebase Configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCAYOYDuMKGGjTSJL5uDzG5hjQ6y_vYPiI",
-  authDomain: "auction-website-b12fc.firebaseapp.com",
-  databaseURL: "https://auction-website-b12fc.firebaseio.com",
-  projectId: "auction-website-b12fc",
-  storageBucket: "auction-website-b12fc.appspot.com",
-  messagingSenderId: "791747024664",
-  appId: "1:791747024664:web:215a222a81c6d0c2aeb06d",
+  apiKey: "AIzaSyC_XJQt_utqGujhSEnpV1HyCO_PZAwsV3g",
+  authDomain: "dicoding-auction.firebaseapp.com",
+  projectId: "dicoding-auction",
+  storageBucket: "dicoding-auction.firebasestorage.app",
+  messagingSenderId: "455586618782",
+  appId: "1:455586618782:web:1ea2acc000508fc7dc8a8f",
+  measurementId: "G-QEHLJ8M3XG"
 };
-
-// Initialize Firebase
+// 2. Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore and Auth
+// 3. Export DB and Auth so the rest of the app can use them! (THIS IS WHAT WAS MISSING)
 export const db = getFirestore(app);
 export const auth = getAuth(app);

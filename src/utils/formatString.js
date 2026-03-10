@@ -6,6 +6,19 @@ const formatMoney = (currency, amount) => {
   return `${currency}${formatNumberWithCommas(amount)}`;
 };
 
+export const formatJakartaTime = (dateInput) => {
+  const date = new Date(dateInput);
+  return date.toLocaleString('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false // Uses 24-hour format
+  });
+};
+
 const formatTime = (time) => {
   const seconds = time / 1000;
   const days = Math.floor(seconds / 86400);
