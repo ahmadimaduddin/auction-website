@@ -104,23 +104,39 @@ export const ItemModal = () => {
     }
 
     setIsSubmitting(true);
-    const amount = parseFloat(bid);
+    // Update this line inside handleSubmitBid:
+    const amount = bid ? parseFloat(bid) : (itemStatus(activeItem).amount + minIncrease);
 
-    // 1. Anti-Monopoly Check
+    // 🛑 UPDATED: ANTI-MONOPOLY CHECK 🛑
     if (activeItem.category && activeItem.category.trim() !== "") {
-      const sameCategoryItems = items.filter(i => i.category === activeItem.category && i.id !== activeItem.id);
-      const isWinningAnother = sameCategoryItems.some(otherItem => {
-        if (!otherItem.bids) return false;
-        const bids = Object.values(otherItem.bids);
-        const winner = bids.reduce((prev, curr) => (prev.amount > curr.amount) ? prev : curr);
-        return winner.uid === auth.currentUser.uid;
-      });
+      
+      const sameCategoryItems = items.filter(
+         item => item.category === activeItem.category && item.id !== activeItem.id
+      );
+      
+      let isWinningAnother = false;
+
+      for (const otherItem of sameCategoryItems) {
+         if (otherItem.bids) {
+            const bidsArray = Object.values(otherItem.bids);
+            
+            // ✅ FIX: Only run .reduce if there is actually at least one bid!
+            if (bidsArray.length > 0) {
+               const winningBid = bidsArray.reduce((prev, current) => (prev.amount > current.amount) ? prev : current);
+               
+               if (winningBid.uid === auth.currentUser.uid) {
+                  isWinningAnother = true;
+                  break;
+               }
+            }
+         }
+      }
 
       if (isWinningAnother) {
-        setFeedback(`You are already winning another item in the [${activeItem.category}] batch.`);
-        setValid("is-invalid");
-        setIsSubmitting(false);
-        return;
+         setFeedback(`You are already the highest bidder on another asset in the [${activeItem.category}] batch.`);
+         setValid("is-invalid");
+         setIsSubmitting(false);
+         return;
       }
     }
 
