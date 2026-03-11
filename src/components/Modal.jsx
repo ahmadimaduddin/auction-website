@@ -38,7 +38,7 @@ export const RulesModal = () => {
       <div className="modal-body">
         <h5>Welcome to the Dicoding Asset Auction!</h5>
         <ul className="list-group list-group-flush">
-          <li className="list-group-item"><strong>1. Anti-Monopoly:</strong> You can only bid on one item per category at a time.</li>
+          <li className="list-group-item"><strong>1. Anti-Monopoly:</strong> You cannot bid on other item with the same category if you are already the highest bidder.</li>
           <li className="list-group-item"><strong>2. Fair Play:</strong> Bids in the last 5 minutes extend the auction by 10 mins.</li>
           <li className="list-group-item"><strong>3. Commit to Buy:</strong> Every bid is a binding commitment.</li>
           <li className="list-group-item"><strong>4. No Tech Support:</strong> Assets are sold "As-Is".</li>
