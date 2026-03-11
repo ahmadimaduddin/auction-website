@@ -106,6 +106,7 @@ const Navbar = ({ admin }) => {
             width="30"
             height="24"
             className="d-inline-block align-text-top"
+            style={{ objectFit: "contain", maxWidth: "100%", maxHeight: "100%" }} // ✅ ADD THIS
           />
           Dicoding Auction
         </div>

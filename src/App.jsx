@@ -45,18 +45,15 @@ function App() {
 
   return (
     <Providers>
-      {/* 1. Add basename here. It MUST match your Repo Name EXACTLY */}
-      <Router basename="/auction-website">
+      <Router>
         <Navbar admin={admin} />
         <SignUpModal />
         <RulesModal />
         <Routes>
-          {/* 2. Paths must start with "/" */}
           <Route 
             path="/" 
             element={user ? <HomePage /> : <LoginScreen />} 
           />
-          
           <Route
             path="/admin"
             element={
@@ -70,11 +67,11 @@ function App() {
       <Footer />
     </Providers>
   );
-}
+} // <--- THIS IS THE CLOSING BRACE THAT WAS MISSING!
 
 App.propTypes = {
   children: PropTypes.arrayOf(PropTypes.element),
   condition: PropTypes.bool
-}
+};
 
 export default App;
