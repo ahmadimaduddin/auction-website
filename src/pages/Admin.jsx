@@ -378,116 +378,89 @@ function AdminPage() {
               </tr>
             </thead>
             <tbody>
-              {items && items.map((item) => {
-                // 1. Time Logic
-                const endTimeMs = item.endTime?.toMillis ? item.endTime.toMillis() : new Date(item.endTime).getTime();
-                const isEnded = endTimeMs < Date.now();
-                const isPreview = item.isOpen === false;
+              {items && [...items]
+                .sort((a, b) => {
+                  const aTime = a.endTime?.toMillis ? a.endTime.toMillis() : new Date(a.endTime).getTime();
+                  const bTime = b.endTime?.toMillis ? b.endTime.toMillis() : new Date(b.endTime).getTime();
+                  const now = Date.now();
+                  const aEnded = aTime < now;
+                  const bEnded = bTime < now;
+                  if (aEnded !== bEnded) return aEnded ? 1 : -1;
+                  return aTime - bTime;
+                })
+                .map((item) => {
+                  // Logic
+                  const endTimeMs = item.endTime?.toMillis ? item.endTime.toMillis() : new Date(item.endTime).getTime();
+                  const isEnded = endTimeMs < Date.now();
+                  const isPreview = item.isOpen === false;
+                  const formattedDate = formatJakartaTime(endTimeMs);
 
-                // Format the date nicely for Indonesia (e.g., 15 Mar, 14:30)
-                const formattedDate = formatJakartaTime(endTimeMs)
-
-                // 2. Bid Math Logic
-                let bidCount = 0;
-                let currentPrice = item.startingPrice || item.amount;
-                if (item.bids) {
-                  const bidsArray = Object.values(item.bids);
-                  bidCount = bidsArray.length;
-                  if (bidCount > 0) {
-                    const winningBid = bidsArray.reduce((prev, current) => (prev.amount > current.amount) ? prev : current);
-                    currentPrice = winningBid.amount;
+                  let bidCount = 0;
+                  let currentPrice = item.startingPrice || item.amount;
+                  if (item.bids) {
+                    const bidsArray = Object.values(item.bids);
+                    bidCount = bidsArray.length;
+                    if (bidCount > 0) {
+                      const winningBid = bidsArray.reduce((prev, current) => (prev.amount > current.amount) ? prev : current);
+                      currentPrice = winningBid.amount;
+                    }
                   }
-                }
 
-                return (
-                  <tr key={item.id}>
-                    {/* COLUMN 1: ASSET INFO */}
-                    <td>
-                      <div className="d-flex align-items-center">
-                        <img
-                          src={item.primaryImage?.startsWith("http") ? item.primaryImage : import.meta.env.BASE_URL + item.primaryImage}
-                          alt={item.title}
-                          style={{ width: "50px", height: "50px", objectFit: "cover", borderRadius: "8px", marginRight: "15px" }}
-                        />
-                        <div>
-                          <strong>{item.title}</strong>
-                          {item.category && <span className="ms-2 badge bg-secondary" style={{ fontSize: "0.7em" }}>{item.category}</span>}
-                          <br />
-                          <small className="text-muted">Start: Rp {item.startingPrice?.toLocaleString('id-ID') || item.amount?.toLocaleString('id-ID')}</small>
+                  return (
+                    <tr key={item.id}>
+                      <td>
+                        <div className="d-flex align-items-center">
+                          <img
+                            src={item.primaryImage?.startsWith("http") ? item.primaryImage : import.meta.env.BASE_URL + item.primaryImage}
+                            alt={item.title}
+                            style={{ width: "50px", height: "50px", objectFit: "cover", borderRadius: "8px", marginRight: "15px" }}
+                          />
+                          <div>
+                            <strong>{item.title}</strong>
+                            {item.category && <span className="ms-2 badge bg-secondary" style={{ fontSize: "0.7em" }}>{item.category}</span>}
+                            <br />
+                            <small className="text-muted">Start: Rp {item.startingPrice?.toLocaleString('id-ID') || item.amount?.toLocaleString('id-ID')}</small>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-
-                    {/* COLUMN 2: PRICE & BIDS */}
-                    <td>
-                      <strong className={bidCount > 0 ? "text-success" : ""}>
-                        Rp {currentPrice.toLocaleString('id-ID')}
-                      </strong>
-                      <br />
-                      <small className="text-muted">{bidCount} bid(s) placed</small>
-                    </td>
-
-                    {/* COLUMN 3: STATUS & DEADLINE */}
-                    <td>
-                      <div className="mb-1">
-                        {isEnded ? <span className="badge bg-secondary">Ended</span>
-                          : isPreview ? <span className="badge bg-info text-dark">Preview (Locked)</span>
-                            : <span className="badge bg-success">Live</span>}
-                      </div>
-                      <small className="text-muted">{formattedDate}</small>
-                    </td>
-
-                    {/* COLUMN 4: LEADER/WINNER */}
-                    <td>
-                      <span style={{ fontSize: "0.95em" }}>{getWinner(item.bids).name}</span>
-                    </td>
-
-                    {/* COLUMN 5: ADMIN ACTIONS */}
-                    <td className="text-end">
-                      {!isEnded && isPreview && (
-                        <button className="btn btn-sm btn-info me-2 fw-bold text-dark mb-1" onClick={() => handleOpenBidding(item.id)}>
-                          🔓 Open Bidding
-                        </button>
-                      )}
-
-                      {!isEnded && !isPreview && (
-                        <button className="btn btn-sm btn-warning me-2 mb-1" onClick={() => handleCloseEarly(item.id)}>
-                          Close Now
-                        </button>
-                      )}
-
-                      {isEnded && (
-                        <button
-                          className="btn btn-sm btn-outline-success me-2 mb-1"
-                          onClick={() => {
+                      </td>
+                      <td>
+                        <strong className={bidCount > 0 ? "text-success" : ""}>Rp {currentPrice.toLocaleString('id-ID')}</strong>
+                        <br />
+                        <small className="text-muted">{bidCount} bid(s) placed</small>
+                      </td>
+                      <td>
+                        <div className="mb-1">
+                          {isEnded ? <span className="badge bg-secondary">Ended</span>
+                            : isPreview ? <span className="badge bg-info text-dark">Preview (Locked)</span>
+                              : <span className="badge bg-success">Live</span>}
+                        </div>
+                        <small className="text-muted">{formattedDate}</small>
+                      </td>
+                      <td>
+                        <span style={{ fontSize: "0.95em" }}>{getWinner(item.bids).name}</span>
+                      </td>
+                      <td className="text-end">
+                        {!isEnded && isPreview && (
+                          <button className="btn btn-sm btn-info me-2 fw-bold text-dark mb-1" onClick={() => handleOpenBidding(item.id)}>🔓 Open</button>
+                        )}
+                        {!isEnded && !isPreview && (
+                          <button className="btn btn-sm btn-warning me-2 mb-1" onClick={() => handleCloseEarly(item.id)}>Close</button>
+                        )}
+                        {isEnded && (
+                          <button className="btn btn-sm btn-outline-success me-2 mb-1" onClick={() => {
                             const winner = getWinner(item.bids);
-
-                            if (!winner.email) {
-                              alert("No email saved for this winner!");
-                              return;
-                            }
-
+                            if (!winner.email) { alert("No email saved!"); return; }
                             const subject = `Congratulations! You won: ${item.title}`;
-                            const body = `Hi ${winner.name},\n\nCongratulations on winning the ${item.title} for Rp ${winner.amount.toLocaleString('id-ID')}.\n\nPlease coordinate with HRGA for the collection.\n\nBest,\nHRGA Admin`;
-
-                            // This opens a new Gmail Compose window in your browser
+                            const body = `Hi ${winner.name},\n\nCongratulations on winning the ${item.title} for Rp ${winner.amount.toLocaleString('id-ID')}.\n\nPlease coordinate with HRGA.`;
                             window.open(`https://mail.google.com/mail/?view=cm&fs=1&to=${winner.email}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
-                          }}
-                        >
-                          📧 Email Winner
-                        </button>
-                      )}
-
-                      <button className="btn btn-sm btn-outline-primary me-2 mb-1" onClick={() => handleEditClick(item)}>
-                        Edit
-                      </button>
-                      <button className="btn btn-sm btn-outline-danger mb-1" onClick={() => handleDelete(item.id)}>
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                          }}>📧 Email</button>
+                        )}
+                        <button className="btn btn-sm btn-outline-primary me-2 mb-1" onClick={() => handleEditClick(item)}>Edit</button>
+                        <button className="btn btn-sm btn-outline-danger mb-1" onClick={() => handleDelete(item.id)}>Delete</button>
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>
