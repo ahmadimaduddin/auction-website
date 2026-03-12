@@ -93,64 +93,95 @@ export const ItemModal = () => {
   }, [activeItem]);
 
   const handleSubmitBid = async () => {
+    setIsSubmitting(true);
     let nowTime = new Date().getTime();
+    
+    // 1. Time Check
+    const endTimeMs = activeItem.endTime?.toMillis ? activeItem.endTime.toMillis() : new Date(activeItem.endTime || 0).getTime();
+    const timeLeft = endTimeMs - nowTime;
 
-    // Check if ended
-    if (endTimeMs - nowTime < 0) {
-      setFeedback("Sorry, this item has already ended!");
+    if (timeLeft < 0) {
+      setFeedback("Sorry, this item has ended!");
       setValid("is-invalid");
       setIsSubmitting(false);
       return;
     }
 
-    setIsSubmitting(true);
-    // Update this line inside handleSubmitBid:
-    const amount = bid ? parseFloat(bid) : (itemStatus(activeItem).amount + minIncrease);
-
-    // 🛑 UPDATED: ANTI-MONOPOLY CHECK 🛑
+    // 2. ANTI-MONOPOLY & 30-MINUTE ENTRY LOCK
     if (activeItem.category && activeItem.category.trim() !== "") {
+      const sameCategoryItems = items.filter(i => i.category === activeItem.category && i.id !== activeItem.id);
       
-      const sameCategoryItems = items.filter(
-         item => item.category === activeItem.category && item.id !== activeItem.id
-      );
+      // Check if user has bid on THIS item before
+      const hasBidOnThisItemBefore = activeItem.bids && Object.values(activeItem.bids).some(b => b.uid === auth.currentUser.uid);
       
-      let isWinningAnother = false;
+      // Check if user is winning another item in the same category
+      let isWinningAnother = sameCategoryItems.some(otherItem => {
+        if (!otherItem.bids) return false;
+        const bidsArray = Object.values(otherItem.bids);
+        const winningBid = bidsArray.reduce((prev, curr) => (prev.amount > curr.amount) ? prev : curr);
+        return winningBid.uid === auth.currentUser.uid;
+      });
 
-      for (const otherItem of sameCategoryItems) {
-         if (otherItem.bids) {
-            const bidsArray = Object.values(otherItem.bids);
-            
-            // ✅ FIX: Only run .reduce if there is actually at least one bid!
-            if (bidsArray.length > 0) {
-               const winningBid = bidsArray.reduce((prev, current) => (prev.amount > current.amount) ? prev : current);
-               
-               if (winningBid.uid === auth.currentUser.uid) {
-                  isWinningAnother = true;
-                  break;
-               }
-            }
-         }
+      // LOCK LOGIC:
+      // If < 30 mins left, you MUST have bid on this specific item before,
+      // OR you must be placing the very first bid on this item (to allow new items to start).
+      const THIRTY_MINUTES = 30 * 60 * 1000;
+      const isNewBidderOnThisItem = !hasBidOnThisItemBefore;
+      const isFirstBidEverOnItem = !activeItem.bids || Object.keys(activeItem.bids).length === 0;
+
+      if (timeLeft < THIRTY_MINUTES && isNewBidderOnThisItem && !isFirstBidEverOnItem) {
+        setFeedback("Bidding is locked for new participants in the last 30 minutes.");
+        setValid("is-invalid");
+        setIsSubmitting(false);
+        return;
       }
 
       if (isWinningAnother) {
-         setFeedback(`You are already the highest bidder on another asset in the [${activeItem.category}] batch.`);
-         setValid("is-invalid");
-         setIsSubmitting(false);
-         return;
+        setFeedback(`You are already winning another item in the [${activeItem.category}] batch.`);
+        setValid("is-invalid");
+        setIsSubmitting(false);
+        return;
       }
     }
-
-    // 2. Submit Bid
+    
+    // 3. Bid Amount Checks
+    if (!/^\d+(\.\d{1,2})?$/.test(bid)) {
+      setFeedback("Please enter a valid amount!");
+      setValid("is-invalid");
+      setIsSubmitting(false);
+      return;
+    }
+    
+    const amount = parseFloat(bid);
     const status = itemStatus(activeItem);
+    const minIncrease = 10000;
+    
+    if (amount < status.amount + minIncrease) {
+      setFeedback("Bid too low!");
+      setValid("is-invalid");
+      setIsSubmitting(false);
+      return;
+    }
+
+    // 4. Sniping Protection (Extend 15 mins if < 5 mins left)
+    const FIVE_MINUTES = 5 * 60 * 1000;
+    const FIFTEEN_MINUTES = 15 * 60 * 1000;
+    let newEndTime = activeItem.endTime;
+    if (timeLeft < FIVE_MINUTES) {
+        newEndTime = Timestamp.fromMillis(endTimeMs + FIFTEEN_MINUTES);
+    }
+    
+    // 5. Submit
     await updateDoc(doc(db, "auction", "items"), {
       [formatField(activeItem.id, status.bids + 1)]: {
         amount: amount,
         uid: auth.currentUser.uid,
-        displayName: auth.currentUser.displayName || "",
-        email: auth.currentUser.email || "",
+        displayName: auth.currentUser.displayName || auth.currentUser.email, 
+        email: auth.currentUser.email || "",             
       },
+      [`${formatField(activeItem.id, 0)}.endTime`]: newEndTime
     });
-
+    
     setValid("is-valid");
     setTimeout(() => { closeModal(); setIsSubmitting(false); }, 1000);
   };
