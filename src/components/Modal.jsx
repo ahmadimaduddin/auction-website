@@ -37,11 +37,23 @@ export const RulesModal = () => {
     <Modal type={ModalTypes.RULES} title="Auction Bidding Rules">
       <div className="modal-body">
         <h5>Welcome to the Dicoding Asset Auction!</h5>
+        <p>Please read these rules carefully before bidding:</p>
         <ul className="list-group list-group-flush">
-          <li className="list-group-item"><strong>1. Anti-Monopoly:</strong> You cannot bid on other item with the same category if you are already the highest bidder.</li>
-          <li className="list-group-item"><strong>2. Fair Play:</strong> Bids in the last 5 minutes extend the auction by 10 mins.</li>
-          <li className="list-group-item"><strong>3. Commit to Buy:</strong> Every bid is a binding commitment.</li>
-          <li className="list-group-item"><strong>4. No Tech Support:</strong> Assets are sold "As-Is".</li>
+          <li className="list-group-item">
+            <strong>1. Batch Limit (Anti-Monopoly):</strong> You can only be the highest bidder on <b>one item per category</b> at a time. If you are already leading in a batch, you must wait for someone to outbid you before you can bid on another item in that same category.
+          </li>
+          <li className="list-group-item">
+            <strong>2. Bidding Lockout:</strong> Bidding is locked for new participants in the last 30 minutes. You must have placed at least one bid before this window to participate in the final closing.
+          </li>
+          <li className="list-group-item">
+            <strong>3. Sniping Protection:</strong> Any bid placed in the final 5 minutes of an auction will automatically extend the auction duration by 15 minutes.
+          </li>
+          <li className="list-group-item">
+            <strong>4. Price Ceiling:</strong> Bids cannot exceed the defined Maximum Sales Value to ensure fair pricing for all employees.
+          </li>
+          <li className="list-group-item">
+            <strong>5. Terms of Sale:</strong> Assets are sold "As-Is". No warranty or IT support is provided after purchase.
+          </li>
         </ul>
       </div>
       <div className="modal-footer">
