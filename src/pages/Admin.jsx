@@ -176,14 +176,13 @@ function AdminPage() {
   };
 
   const getWinner = (itemBids) => {
-    if (!itemBids) return { name: "No bids yet", email: "" };
+    if (!itemBids) return { name: "No bids yet", email: "", amount: 0 };
     const bidsArray = Object.values(itemBids);
-    if (bidsArray.length === 0) return { name: "No bids yet", email: "" };
+    if (bidsArray.length === 0) return { name: "No bids yet", email: "", amount: 0 };
 
     const winningBid = bidsArray.reduce((prev, current) => (prev.amount > current.amount) ? prev : current);
-
     return {
-      name: winningBid.displayName || winningBid.email || "Anonymous",
+      name: winningBid.displayName || winningBid.name || winningBid.email || "Anonymous",
       email: winningBid.email || "",
       amount: winningBid.amount
     };
@@ -254,14 +253,25 @@ function AdminPage() {
   }) : [];
 
   const handleExportCSV = () => {
-    let csvContent = "data:text/csv;charset=utf-8,Asset,Winner,Email,Final Bid\n";
+    // 1. Define the CSV Header
+    let csvContent = "data:text/csv;charset=utf-8,Asset Name,Category,Winner Name,Winner Email,Final Bid\n";
 
     items.forEach(item => {
-      const winnerData = getWinner(item.bids); // Use your existing winner function
-      const row = `${item.title},"${winnerData}"\n`;
+      // 2. Get the winner object properly
+      const winner = getWinner(item.bids);
+
+      // 3. Extract data from the winner object
+      // If winner is a string "No bids yet", handle it safely
+      const winnerName = typeof winner === 'object' ? winner.name : "No bids yet";
+      const winnerEmail = typeof winner === 'object' ? winner.email : "";
+      const finalBid = typeof winner === 'object' ? winner.amount : 0;
+
+      // 4. Clean strings to prevent commas from breaking the CSV (using quotes)
+      const row = `${item.title},${item.category || "-"},"${winnerName}","${winnerEmail}",${finalBid}\n`;
       csvContent += row;
     });
 
+    // 5. Trigger download
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
