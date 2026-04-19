@@ -130,6 +130,7 @@ export const ItemModal = () => {
       let isWinningAnother = sameCategoryItems.some(otherItem => {
         if (!otherItem.bids) return false;
         const bidsArray = Object.values(otherItem.bids);
+        if (bidsArray.length === 0) return false; // Prevent reduce on empty array
         const winningBid = bidsArray.reduce((prev, curr) => (prev.amount > curr.amount) ? prev : curr);
         return winningBid.uid === auth.currentUser.uid;
       });
