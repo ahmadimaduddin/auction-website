@@ -176,11 +176,20 @@ export const ItemModal = () => {
       return;
     }
 
+    if (activeItem.salesValue > 0 && amount > activeItem.salesValue) {
+      setFeedback(`Bid exceeds the maximum allowed value of Rp ${activeItem.salesValue.toLocaleString('id-ID')}!`);
+      setValid("is-invalid");
+      setIsSubmitting(false);
+      return;
+    }
+
     // 4. Sniping Protection (Extend 15 mins if < 5 mins left)
     const FIVE_MINUTES = 5 * 60 * 1000;
     const FIFTEEN_MINUTES = 15 * 60 * 1000;
     let newEndTime = activeItem.endTime;
-    if (timeLeft < FIVE_MINUTES) {
+    
+    // If the max value is reached, there's no point extending the auction since no one can outbid.
+    if (timeLeft < FIVE_MINUTES && (!activeItem.salesValue || amount < activeItem.salesValue)) {
         newEndTime = Timestamp.fromMillis(endTimeMs + FIFTEEN_MINUTES);
     }
     
@@ -216,23 +225,28 @@ export const ItemModal = () => {
             disabled={
               activeItem.isOpen === false ||
               (activeItem.endTime?.toMillis ? activeItem.endTime.toMillis() : new Date(activeItem.endTime || 0).getTime()) < Date.now() ||
-              isSubmitting
+              isSubmitting ||
+              (activeItem.salesValue > 0 && itemStatus(activeItem).amount >= activeItem.salesValue)
             }
             placeholder={
               activeItem.isOpen === false ? "Locked" :
-                ((activeItem.endTime?.toMillis ? activeItem.endTime.toMillis() : new Date(activeItem.endTime || 0).getTime()) < Date.now()) ? "Auction Ended" : `Min: ${itemStatus(activeItem).amount + minIncrease}`
+                ((activeItem.endTime?.toMillis ? activeItem.endTime.toMillis() : new Date(activeItem.endTime || 0).getTime()) < Date.now()) ? "Auction Ended" : 
+                (activeItem.salesValue > 0 && itemStatus(activeItem).amount >= activeItem.salesValue) ? "Max Value Reached" :
+                `Min: ${itemStatus(activeItem).amount + minIncrease}`
             }
             min={itemStatus(activeItem).amount + minIncrease}
+            max={activeItem.salesValue > 0 ? activeItem.salesValue : undefined}
             step={minIncrease}
           />
           <button
             type="button"
-            className={`btn ${(activeItem.isOpen === false || (activeItem.endTime?.toMillis ? activeItem.endTime.toMillis() : new Date(activeItem.endTime || 0).getTime()) < Date.now()) ? "btn-secondary" : "btn-primary"}`}
+            className={`btn ${(activeItem.isOpen === false || (activeItem.endTime?.toMillis ? activeItem.endTime.toMillis() : new Date(activeItem.endTime || 0).getTime()) < Date.now() || (activeItem.salesValue > 0 && itemStatus(activeItem).amount >= activeItem.salesValue)) ? "btn-secondary" : "btn-primary"}`}
             onClick={handleSubmitBid}
-            disabled={isSubmitting || activeItem.isOpen === false || (activeItem.endTime?.toMillis ? activeItem.endTime.toMillis() : new Date(activeItem.endTime || 0).getTime()) < Date.now()}
+            disabled={isSubmitting || activeItem.isOpen === false || (activeItem.endTime?.toMillis ? activeItem.endTime.toMillis() : new Date(activeItem.endTime || 0).getTime()) < Date.now() || (activeItem.salesValue > 0 && itemStatus(activeItem).amount >= activeItem.salesValue)}
           >
             {activeItem.isOpen === false ? "🔒 Bidding Opens Soon" :
-              ((activeItem.endTime?.toMillis ? activeItem.endTime.toMillis() : new Date(activeItem.endTime || 0).getTime()) < Date.now()) ? "Item Ended" : "Submit bid"}
+              ((activeItem.endTime?.toMillis ? activeItem.endTime.toMillis() : new Date(activeItem.endTime || 0).getTime()) < Date.now()) ? "Item Ended" : 
+              (activeItem.salesValue > 0 && itemStatus(activeItem).amount >= activeItem.salesValue) ? "Max Value Reached" : "Submit bid"}
           </button>
         </div>
         <div className="text-danger small">{feedback}</div>
