@@ -9,6 +9,7 @@ function AdminPage() {
   const { items } = useContext(ItemsContext);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [exportRange, setExportRange] = useState({ start: "", end: "" });
 
   const getLocalDatetimeString = (date) => {
     const offset = date.getTimezoneOffset() * 60000;
@@ -253,10 +254,27 @@ function AdminPage() {
   }) : [];
 
   const handleExportCSV = () => {
+    // 0. Filter by Date Range if provided
+    let filteredItems = items || [];
+    if (exportRange.start) {
+      const startDate = new Date(exportRange.start).getTime();
+      filteredItems = filteredItems.filter(item => {
+        const itemTime = item.endTime?.toMillis ? item.endTime.toMillis() : new Date(item.endTime).getTime();
+        return itemTime >= startDate;
+      });
+    }
+    if (exportRange.end) {
+      const endDate = new Date(exportRange.end).getTime();
+      filteredItems = filteredItems.filter(item => {
+        const itemTime = item.endTime?.toMillis ? item.endTime.toMillis() : new Date(item.endTime).getTime();
+        return itemTime <= endDate;
+      });
+    }
+
     // 1. Define the CSV Header
     let csvContent = "data:text/csv;charset=utf-8,Asset Name,Category,Winner Name,Winner Email,Final Bid\n";
 
-    items.forEach(item => {
+    filteredItems.forEach(item => {
       // 2. Get the winner object properly
       const winner = getWinner(item.bids);
 
@@ -275,9 +293,69 @@ function AdminPage() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "auction_winners.csv");
+    link.setAttribute("download", `auction_winners${exportRange.start || exportRange.end ? '_filtered' : ''}.csv`);
     document.body.appendChild(link);
     link.click();
+  };
+
+  const handleImportCSV = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target.result;
+      const lines = text.split("\n");
+      const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
+
+      const docRef = doc(db, "auction", "items");
+      const updates = {};
+      let importCount = 0;
+
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+
+        // Simple CSV parser (doesn't handle quoted commas, but matches our export)
+        const values = lines[i].split(",").map(v => v.trim().replace(/^"|"$/g, ''));
+        const rowData = {};
+        headers.forEach((header, index) => {
+          rowData[header] = values[index];
+        });
+
+        const newItemId = Date.now() + i; // Unique enough for batch
+        const fieldKey = formatField(newItemId, 0);
+
+        // Map CSV headers to our Firestore structure
+        // Expected headers: asset name, category, amount/starting price, specs, etc.
+        const itemData = {
+          id: newItemId,
+          title: rowData["asset name"] || rowData["title"] || "Imported Item",
+          subtitle: rowData["specs"] || rowData["subtitle"] || "-",
+          detail: rowData["detail"] || rowData["description"] || "Imported via CSV",
+          amount: parseFloat(rowData["amount"] || rowData["starting price"] || 0),
+          startingPrice: parseFloat(rowData["amount"] || rowData["starting price"] || 0),
+          currency: "IDR",
+          category: rowData["category"] || "",
+          primaryImage: rowData["primary image"] || "images/laptopdell.jpg",
+          secondaryImage: rowData["secondary image"] || "",
+          isOpen: false,
+          endTime: Timestamp.fromDate(new Date(rowData["end date"] || defaultEndDate)),
+          isArchived: false
+        };
+
+        updates[fieldKey] = itemData;
+        importCount++;
+      }
+
+      if (importCount > 0) {
+        if (confirm(`Import ${importCount} items?`)) {
+          await setDoc(docRef, updates, { merge: true });
+          alert(`Successfully imported ${importCount} items!`);
+        }
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = null; // Reset input
   };
 
   return (
@@ -295,9 +373,33 @@ function AdminPage() {
           <button className="btn btn-danger me-2" onClick={handleDeleteAllBids}>
             ⚠️ Delete All Bids
           </button>
-          <button className="btn btn-outline-success me-2" onClick={handleExportCSV}>
-            📥 Export Winners (CSV)
-          </button>
+
+          <div className="d-inline-flex align-items-center bg-white border rounded p-1 me-2">
+            <small className="text-muted mx-2 fw-bold">Export Range:</small>
+            <input
+              type="date"
+              className="form-control form-control-sm border-0"
+              style={{ width: '130px' }}
+              value={exportRange.start}
+              onChange={e => setExportRange({ ...exportRange, start: e.target.value })}
+            />
+            <span className="mx-1">-</span>
+            <input
+              type="date"
+              className="form-control form-control-sm border-0"
+              style={{ width: '130px' }}
+              value={exportRange.end}
+              onChange={e => setExportRange({ ...exportRange, end: e.target.value })}
+            />
+            <button className="btn btn-sm btn-success ms-2" onClick={handleExportCSV}>
+              📥 Export
+            </button>
+          </div>
+
+          <label className="btn btn-outline-primary mb-0">
+            📥 Import CSV
+            <input type="file" accept=".csv" hidden onChange={handleImportCSV} />
+          </label>
         </div>
       </div>
 
